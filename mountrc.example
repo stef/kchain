@@ -1,7 +1,0 @@
-# put such files in
-# /media/keys/.kchain/mounts/
-
-name=secret
-keyfile=/media/keys/.kchain/secret.key
-image=/home/user/data/tmp/secret 
-mountdir=/home/user/.mnt/n1
