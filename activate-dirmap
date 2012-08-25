@@ -20,7 +20,6 @@ source ~/.kchainrc 2>/dev/null
 source .kchainrc 2>/dev/null
 
 function _activate {
-    set -x
     new="${1}"
     target="${2}"
     [[ -L "$target" ]] || {
