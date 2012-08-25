@@ -36,4 +36,4 @@ mv "$target" "$local"
 ln -s "$local" "$target"
 echo "$new $target" >>"$MOUNTDIR/.kchain/conf.d/dirmap"
 
-echo "done. activate $new $target"
+echo "done. activate-dirmap $new $target"

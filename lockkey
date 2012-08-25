@@ -24,7 +24,7 @@ MOUNTDIR=/media/$LABEL
 source ~/.kchainrc 2>/dev/null
 source .kchainrc 2>/dev/null
 
-${0%/*}/activate de
+${0%/*}/activate-dirmap de
 
 ${0%/*}/umount-images
 

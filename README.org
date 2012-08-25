@@ -8,12 +8,12 @@ the key to other locations (e.g. remapping ~/.gnupg).
     This is the main dispatcher, it reacts to the addition/removal of
     the key. After successful mounting of the key under $keyroot, the
     files in $keyroot/.kchain/rules.d are being executed. Two rules
-    exist: activate and mount-images.
+    exist: activate-dirmap and mount-images.
 *** lockkey
     Cleanly deactivates all rules and the key. Should also be invoked
     by kchain when it detects the remove event of the USB stick.
     Bind this to a key in your wm, or to the ACPI event lidclose.
-*** activate
+*** activate-dirmap
     One of the rules used by kchain. Activates a dirmap, see
     create-dirmap below. Can be reversed using a 'de' parameter.
 *** create-dirmap
