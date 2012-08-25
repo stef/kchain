@@ -3,6 +3,10 @@
 a USB stick, create encrypted containers, and linking directories from
 the key to other locations (e.g. remapping ~/.gnupg).
 
+When it works: your stick will be automatically mounted, any encrypted
+containers are mounted, the content of the key is made available on
+your system.
+
 ** Components
 *** kchain
     This is the main dispatcher, it reacts to the addition/removal of
