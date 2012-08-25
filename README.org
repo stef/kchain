@@ -1,5 +1,5 @@
 * kchain
-... is a set of small scripts that help to keep all encryption keys on
+... is a set of scripts that help to keep all encryption keys on
 a USB stick, create encrypted containers, and linking directories from
 the key to other locations (e.g. remapping ~/.gnupg).
 
