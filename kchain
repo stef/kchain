@@ -52,6 +52,7 @@ function add {
             PATH="$PATH:$kchain_path" $i
         done
     fi
+    echo "activated $MOUNTDIR" >&2
 }
 
 function remove {
@@ -62,6 +63,7 @@ function remove {
     [[ "/dev/$object" == "$(cat $CACHEDIR/dev)" ]] || return
     # run clean up
     $kchain_path/lock-key
+    echo "deactivated $MOUNTDIR" >&2
 }
 
 dbus-monitor --system "type='signal',interface='org.freedesktop.UDisks'" |
