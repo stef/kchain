@@ -1,0 +1,32 @@
+#!/usr/bin/ksh
+#    This file is part of kchain
+
+#    kchain is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+
+#    kchain is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+
+#    You should have received a copy of the GNU General Public License
+#    along with kchain.  If not, see <http://www.gnu.org/licenses/>.
+
+# (C) 2012 by Stefan Marsiske, <stefan.marsiske@gmail.com>
+
+# depends on pmount, dbus-monitor
+
+LABEL=keys
+MOUNTDIR=/media/$LABEL
+
+source ~/.kchainrc 2>/dev/null
+source .kchainrc 2>/dev/null
+
+${0%/*}/activate de
+
+${0%/*}/umount-images
+
+mountpoint -q "$MOUNTDIR" && pumount $LABEL
+[[ -e /dev/mapper/ukey ]] && /sbin/cryptsetup luksClose ukey

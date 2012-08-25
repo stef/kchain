@@ -1,0 +1,66 @@
+#!/usr/bin/ksh
+#    This file is part of kchain
+
+#    kchain is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+
+#    kchain is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+
+#    You should have received a copy of the GNU General Public License
+#    along with kchain.  If not, see <http://www.gnu.org/licenses/>.
+
+# (C) 2012 by Stefan Marsiske, <stefan.marsiske@gmail.com>
+
+LABEL=keys
+MOUNTDIR=/media/$LABEL
+CACHEDIR="$HOME/.cache/kchain/mounts"
+
+source ~/.kchainrc 2>/dev/null
+source .kchainrc 2>/dev/null
+
+# dd if=/dev/zero of=crypt bs=1M count=1024
+# keyfile=/media/keys/.kchain/crypt.key
+# openssl rand -out $keyfile 1024
+# cryptsetup luksFormat -c aes-xts-plain64 -s 512 -h sha512 /dev/loop0 $keyfile
+# cryptsetup luksOpen /dev/loop0 crypt --key-file $keyfile
+# mkfs.ext4 /dev/mapper/crypt
+
+function mountimage {
+    name=""; keyfile=""; mountdir=""; image=""
+    source "$1"
+    mountpoint -q "$mountdir" && return
+    lb=$(sudo /sbin/losetup -j "$image" | cut -d: -f1)
+    [[ -z "$lb" ]] && {
+        lb=$(sudo /sbin/losetup -f)
+        sudo /sbin/losetup "$lb" "$image"
+    }
+    [[ -e "/dev/mapper/$name" ]] ||
+        sudo /sbin/cryptsetup luksOpen "$lb" "$name" --key-file "$keyfile"
+    [[ -e "$mountdir" ]] || mkdir -p "$mountdir"
+    sudo /bin/mount "/dev/mapper/$name" "$mountdir"
+    cat >"$CACHEDIR/mounts/$name" <<EOF
+name="$name"
+mountdir="$mountdir"
+image="$image"
+EOF
+}
+
+break=/bin/false
+while [[ -f "$1" ]]; do
+    break=/bin/true
+    echo "mounting image $1"
+    mountimage $1
+    shift 1
+done
+$break && exit
+
+if [ -d "$MOUNTDIR/.kchain/mounts" ]; then
+    for i in `run-parts --list "$MOUNTDIR/.kchain/mounts" `; do
+        mountimage "$i"
+    done
+fi

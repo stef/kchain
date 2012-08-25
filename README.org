@@ -1,0 +1,22 @@
+** Install
+   With your USB stick plugged run while specifying the partition on
+   which your keys are stored:
+#+begin_src
+make-udev-rule.sh /dev/sd?
+#+end_src
+
+   add /dev/mapper/ukey to /etc/pmount.allow
+#+begin_src
+# echo /dev/mapper/ukey >>/etc/pmount.allow
+#+end_src
+
+#+begin_src
+mkdir -p ~/.cache/kchain/mounts/
+#+end_src
+
+#+begin_src
+cat >~/.kchainrc <<EOT
+LABEL=keys
+MOUNTDIR=/media/\$LABEL
+localgnupg=$HOME/.gnupg.local
+#+end_src

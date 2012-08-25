@@ -1,0 +1,43 @@
+#!/usr/bin/ksh
+#    This file is part of kchain
+
+#    kchain is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+
+#    kchain is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+
+#    You should have received a copy of the GNU General Public License
+#    along with kchain.  If not, see <http://www.gnu.org/licenses/>.
+
+# (C) 2010 by Stefan Marsiske, <stefan.marsiske@gmail.com>
+
+source ~/.kchainrc 2>/dev/null
+source .kchainrc 2>/dev/null
+
+filename="$1"
+size="$2"
+keyfile="$3"
+name="$4"
+mountpoint="$5"
+
+dd if=/dev/zero of="$filename" bs=1M count=$size
+openssl rand -out "$keyfile" 2048
+lb="$(SUDO_ASKPASS=/usr/bin/ssh-askpass sudo -A /sbin/losetup -f)"
+sudo /sbin/losetup "$lb" "$filename"
+sudo /sbin/cryptsetup luksFormat -c aes-xts-plain64 -s 512 -h sha512 "$lb" "$keyfile"
+sudo /sbin/cryptsetup luksOpen "$lb" "$name" --key-file "$keyfile"
+sudo /sbin/mkfs.ext4 "/dev/mapper/$name"
+sudo /sbin/cryptsetup luksClose "$name"
+sudo losetup -d "$lb"
+cat >"/media/keys/.kchain/mounts/$name" <<EOF
+name=$name
+keyfile=$keyfile
+image=$filename
+mountdir=$mountpoint
+EOF
+${0%/*}/mount-images "/media/keys/.kchain/mounts/$name"

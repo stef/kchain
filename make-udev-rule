@@ -1,0 +1,24 @@
+#!/usr/bin/ksh
+
+# as root
+
+[[ $# -lt 1 ]] && {
+echo "${0##*/} /dev/sdxX # partition for kchain on your stick"
+exit 1
+}
+device="$1"
+
+/sbin/udevadm info -a -p $(/sbin/udevadm info -q path -n "${device:0:8}") |
+   while read line; do
+       [[ -n "$ser" && -n "$prod" && -n "$vend" ]] && break
+       [[ "$line" =~ "ATTRS{idVendor}" ]] && { vend="$line"; continue; }
+       [[ "$line" =~ "ATTRS{serial}" ]] && { ser="$line"; continue; }
+       [[ "$line" =~ "ATTRS{idProduct}" ]] && { prod="$line"; continue; }
+done
+
+isroot=false
+[[ "$(id -u)" == "0" ]] && isroot=true
+
+$isroot \
+    && echo 'KERNEL=="sd?2", $ser, $prod, $vend, SYMLINK+="ukey"' \
+    || echo "sudo echo 'KERNEL==\"sd?2\", $ser, $prod, $vend, SYMLINK+=\"ukey\"' >/etc/udev/rules.d/81-kchain.rules"

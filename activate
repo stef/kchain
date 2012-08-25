@@ -1,0 +1,73 @@
+#!/usr/bin/ksh
+#    This file is part of kchain
+
+#    kchain is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+
+#    kchain is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+
+#    You should have received a copy of the GNU General Public License
+#    along with kchain.  If not, see <http://www.gnu.org/licenses/>.
+
+# (C) 2012 by Stefan Marsiske, <stefan.marsiske@gmail.com>
+
+source ~/.kchainrc 2>/dev/null
+source .kchainrc 2>/dev/null
+
+function _activate {
+    set -x
+    new="${1}"
+    target="${2}"
+    [[ -L "$target" ]] || {
+        echo "$target is not a symbolic link. Bailing out" >&2
+        return
+    }
+    [[ -d "$new" ]] || {
+        echo "$new not found. Bailing out" >&2
+        return
+    }
+    [[ "$(realpath $target)" == "$(realpath $new)" ]] && {
+        echo "$new already active. Bailing out" >&2
+        return
+    }
+    oldtarget="$(realpath $target)"
+    rm "$target" || {
+        echo "Can't delete $target. Bailing out" >&2
+        return
+    }
+    ln -s "$new" "$target"
+    echo "$oldtarget"
+}
+
+break=/bin/false
+while [[ -f "$1" && -f "$2" ]]; do
+    break=/bin/true
+    echo "activating $1"
+    _activate "$1" "$2"
+    shift 2
+done
+$break && exit
+
+[[ "$1" != "de" && -r "$MOUNTDIR/.kchain/conf.d/dirmap" ]] && dirmap="$MOUNTDIR/.kchain/conf.d/dirmap"
+[[ "$1" == "de" && -r "$CACHEDIR/dirmap" ]] && dirmap="$CACHEDIR/dirmap"
+[[ -r "$dirmap" ]] \
+   && cat "$dirmap" \
+   | while read new target; do
+        oldtarget=$(_activate "$new" "$target")
+        [[ "$1" != "de" ]] \
+            && echo "$oldtarget $target" >>"$CACHEDIR/dirmap" \
+            || {
+                # remove cleanup from dirmap in cache
+                tmp=$(mktemp)
+                grep -v "$new $target" "$CACHEDIR/dirmap" >"$tmp"
+                # stupid grep error handling
+                [[ "$?" -lt 2 ]] \
+                    && mv "$tmp" "$CACHEDIR/dirmap" \
+                    || rm "$tmp"
+            }
+   done
