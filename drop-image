@@ -24,5 +24,4 @@ source .kchainrc 2>/dev/null
 
 ${0%/*}/umount-images "$1"
 source "$1"
-srm -fll "$keyfile"
-srm -fll "$image"
+srm -fll "$keyfile" "$image" "$1"
