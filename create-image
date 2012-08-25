@@ -41,3 +41,4 @@ image=$filename
 mountdir=$mountpoint
 EOF
 ${0%/*}/mount-images "/media/keys/.kchain/mounts/$name"
+echo "succesfully created /media/keys/.kchain/mounts/$name"
