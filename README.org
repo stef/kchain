@@ -73,3 +73,5 @@ cat >~/.kchainrc <<EOT
 LABEL=keys
 MOUNTDIR=/media/\$LABEL
 #+end_src
+
+todo: finish
