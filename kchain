@@ -61,7 +61,7 @@ function remove {
     # ignore foreign devices
     [[ "/dev/$object" == "$(cat $CACHEDIR/dev)" ]] || return
     # run clean up
-    $kchain_path/lockkey
+    $kchain_path/lock-key
 }
 
 dbus-monitor --system "type='signal',interface='org.freedesktop.UDisks'" |

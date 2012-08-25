@@ -9,7 +9,7 @@ the key to other locations (e.g. remapping ~/.gnupg).
     the key. After successful mounting of the key under $keyroot, the
     files in $keyroot/.kchain/rules.d are being executed. Two rules
     exist: activate-dirmap and mount-images.
-*** lockkey
+*** lock-key
     Cleanly deactivates all rules and the key. Should also be invoked
     by kchain when it detects the remove event of the USB stick.
     Bind this to a key in your wm, or to the ACPI event lidclose.
@@ -43,7 +43,7 @@ create-dirmap ~/.irssi/otr ~/.keyroot/irssi-otr
     creates a random key at $PWD/test.key, calls the whole image
     'test' and sets it up for automatic mounting under '/mnt'
 *** umount-images
-    Called by lockkey. Umounts all images or only parameters.
+    Called by lock-key. Umounts all images or only parameters.
     Images are specified by their configfile created by create-image.
 *** drop-image
     unmounts and securely deletes the storage, expects the image
