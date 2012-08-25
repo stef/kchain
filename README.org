@@ -25,9 +25,11 @@ your system.
     back to the original name. And sets up a config that automatically
     replaces the link to the local directory to a link pointing to an
     alternative location, e.g.:
+
 #+begin_src sh
 create-dirmap ~/.irssi/otr ~/.keyroot/irssi-otr
 #+end_src
+
     The original ~/.irssi/otr is renamed to ~/.irssi/otr.local, a link
     from ~/.irssi/otr.local to ~/.irssi/otr is created, and an entry
     in $keyroot/.kchain/conf.d/dirmap is created.
@@ -40,9 +42,11 @@ create-dirmap ~/.irssi/otr ~/.keyroot/irssi-otr
 *** create-image
     creates a new encrypted container and sets it up for automatic
     mounting by kchain. Invoke with:
+
 #+begin_src sh
 # create-image $PWD/test.img 10 $PWD/test.key test /mnt
 #+end_src
+
     Which creates an image $PWD/test.img which is 10MByte big, also
     creates a random key at $PWD/test.key, calls the whole image
     'test' and sets it up for automatic mounting under '/mnt'
@@ -56,6 +60,8 @@ create-dirmap ~/.irssi/otr ~/.keyroot/irssi-otr
     Prints out a suitable udev rule, for always linking the usb
     storage always to /dev/ukey, needed by kchain.
 
+** Depends
+    - libnotify-bin (optional)
 ** Install
    With your USB stick plugged run while specifying the partition on
    which your keys are stored:
