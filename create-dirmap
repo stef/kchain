@@ -1,0 +1,39 @@
+#!/usr/bin/ksh
+#    This file is part of kchain
+
+#    kchain is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+
+#    kchain is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+
+#    You should have received a copy of the GNU General Public License
+#    along with kchain.  If not, see <http://www.gnu.org/licenses/>.
+
+# (C) 2012 by Stefan Marsiske, <stefan.marsiske@gmail.com>
+
+source ~/.kchainrc 2>/dev/null
+source .kchainrc 2>/dev/null
+
+target="${1}"
+new="${2}"
+local="${3:-$target.local}"
+
+[[ -L "$target" ]] && {
+    echo "$target is already a symbolic link. Bailing out" >&2
+    return
+}
+[[ -d "$local" ]] && {
+    echo "$local already exists. Bailing out" >&2
+}
+[[ -d "$new" ]] || mkdir -p "$new"
+
+mv "$target" "$local"
+ln -s "$local" "$target"
+echo "$new $target" >>"$MOUNTDIR/.kchain/conf.d/dirmap"
+
+echo "done. activate $new $target"
