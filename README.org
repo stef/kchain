@@ -55,20 +55,20 @@ create-dirmap ~/.irssi/otr ~/.keyroot/irssi-otr
 ** Install
    With your USB stick plugged run while specifying the partition on
    which your keys are stored:
-#+begin_src
+#+begin_src sh
 make-udev-rule.sh /dev/sd?
 #+end_src
 
    add /dev/mapper/ukey to /etc/pmount.allow
-#+begin_src
+#+begin_src sh
 # echo /dev/mapper/ukey >>/etc/pmount.allow
 #+end_src
 
-#+begin_src
+#+begin_src sh
 mkdir -p ~/.cache/kchain/mounts/
 #+end_src
 
-#+begin_src
+#+begin_src sh
 cat >~/.kchainrc <<EOT
 LABEL=keys
 MOUNTDIR=/media/\$LABEL
