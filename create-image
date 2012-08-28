@@ -19,6 +19,11 @@
 source ~/.kchainrc 2>/dev/null
 source .kchainrc 2>/dev/null
 
+[[ $# -lt 5 ]] && {
+    print "${0##*/} <filename> <size> <keyfile> <name> <mountpoint>"
+    exit 1
+}
+
 filename="$1"
 size="$2"
 keyfile="$3"
@@ -27,13 +32,10 @@ mountpoint="$5"
 
 dd if=/dev/zero of="$filename" bs=1M count=$size
 openssl rand -out "$keyfile" 2048
-lb="$(SUDO_ASKPASS=/usr/bin/ssh-askpass sudo -A /sbin/losetup -f)"
-sudo /sbin/losetup "$lb" "$filename"
-sudo /sbin/cryptsetup luksFormat -c aes-xts-plain64 -s 512 -h sha512 "$lb" "$keyfile"
-sudo /sbin/cryptsetup luksOpen "$lb" "$name" --key-file "$keyfile"
+sudo /sbin/cryptsetup luksFormat -c aes-xts-plain64 -s 512 -h sha512 "$filename" "$keyfile"
+sudo /sbin/cryptsetup luksOpen "$filename" "$name" --key-file "$keyfile"
 sudo /sbin/mkfs.ext4 "/dev/mapper/$name"
 sudo /sbin/cryptsetup luksClose "$name"
-sudo losetup -d "$lb"
 cat >"/media/keys/.kchain/mounts/$name" <<EOF
 name=$name
 keyfile=$keyfile
