@@ -1,0 +1,201 @@
+#!/usr/bin/ksh
+#    This file is part of kchain
+
+#    kchain is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+
+#    kchain is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+
+#    You should have received a copy of the GNU General Public License
+#    along with kchain.  If not, see <http://www.gnu.org/licenses/>.
+
+# (C) 2012 by Stefan Marsiske, <stefan.marsiske@gmail.com>
+
+# depends on cryptsetup
+
+LABEL=keys
+MOUNTDIR=/media/$LABEL
+kchain_path="$(realpath ${0%/*})"
+
+source ~/.kchainrc 2>/dev/null
+source .kchainrc 2>/dev/null
+
+function tobytes {
+    v="${1%%[a-zA-Z]*}"
+    m="${1##*[0-9]}"; m="$(print ${m:0:1} | tr 'A-Z' 'a-z')"
+    ./kilo.awk $v $m b
+}
+
+dev="$1"
+size="$(tobytes ${2:-10Mb})"
+name="${3:-kchain}"
+mountpoint="${4:-/media/kchain}"
+keyfile="$5"
+
+function getpass {
+    pass=$(/usr/bin/ssh-askpass "$1")
+    [[ "$?" -gt 0 ]] && exit
+    print "$pass"
+}
+
+# no target dev provided, autoguess
+[[ -z "$dev" ]] && {
+    devs=$(${kchain_path}/getusb)
+    cnt=$(print "$devs" | wc -l)
+    if [[ "$cnt" -eq 0 ]]; then
+        print "Please insert an USB storage device, or specify a new device explicitly";
+        help
+        exit 1
+    elif [[ "$cnt" -gt 1 ]]; then
+        i=1;
+        print "$devs" | while read line; do
+            print "$i $line"
+            i=$((i+1))
+        done
+        choice=''
+        while true; do
+            [[ "$choice" =~ ^[0-9]+$ ]] && break
+            printf "please choose one of the above devices [1-$((i-1))]: "
+            read choice
+        done
+    else
+        choice=1
+    fi
+
+    devtxt=$(print "$devs" | sed "${choice}P;d")
+    dev=$(print "$devtxt" | cut -d' ' -f1 )
+    print "No device specified. Guesing..."
+    print "Will try to create a new container on $devtxt"
+}
+
+# dev is a valid disk
+if [[ "$dev" =~ '/dev/sd.' ]]; then
+    # get partitions and unallocated free space
+    pdevs=$(ls $dev?)
+    parts=$(sudo parted -s "$dev" print free | sed '1,/Number\s*Start\s*End\s*Size\s*Type\s*File system\s*Flags$/d')
+    [[ $? -ne 0 ]] && { print "some error occured. bailing out"; exit 1; }
+    free=0
+    print "$parts" | grep "Free Space$" | while read line; do
+        cur=$(tobytes $(echo "$line" | awk '{print $3;}' ) )
+        [[ $cur -gt $free ]] && {
+            free=$cur
+            start=$(tobytes $(echo "$line" | awk '{print $1;}' | tr A-Z a-z ) )
+            end=$(tobytes $(echo "$line" | awk '{print $2;}' | tr A-Z a-z  ) )
+        }
+    done
+    parts=$(print "$parts" | grep -v "Free Space$")
+    [[ "$free" -lt "$size" ]] && {
+        # try to resize a partition to make enough space
+        print "Not enough free space. Trying to resize."
+        cnt=$(print "$parts" | wc -l)
+        if [[ "$cnt" -eq 0 ]]; then
+            print "Hmm, there's no free space on this device,"
+            print "but also no partitions, if i understand this correctly.";
+            print "Try with another USB stick please.";
+            exit 1
+        elif [[ "$cnt" -gt 1 ]]; then
+            print "Number  Start   End     Size    Type     File system   Flags"
+            print "$parts"
+            choice=''
+            while true; do
+                [[ "$choice" =~ ^[0-9]+$ ]] && break
+                printf "please choose one of the above devices to resize [1-$cnt]: "
+                read choice
+            done
+        else
+            choice=1
+        fi
+        print "$parts" | sed "${choice}P;d"
+        print
+        print "WARNING. this mostly works, sometimes not!"
+        print "We're not taking responsibility to what happens to your data"
+        print "If you care deeply about it,"
+        print "you are advised to abort here and continue manually"
+        print "abort now, or press enter to continue"
+        read tmp
+        # try to resize the partition
+        no=$(print "$parts" | sed "${choice}P;d" | awk '{print $1}')
+        start=$(print "$parts" | sed "${choice}P;d" | awk '{print $2}')
+        end=$(print "$parts" | sed "${choice}P;d" | awk '{print $3}'); end=$(( $(tobytes "$end") - $size + $free))
+        endm=$(./kilo.awk $end b m)
+        #print "$no, $start, ${end}MB"
+        sudo parted -s "$dev" resize "$no" "$start" "${endm}MB" 2>/dev/null
+        [[ $? -ne 0 ]] && { print "some error during resize occured. bailing out"; exit 1; }
+        start=$end
+        end=$((start + size))
+    }
+    # create partition
+    print "you have selected a device, that has enough space left."
+    print "creating the new partition now. ctrcl-c to abort, enter to continue"
+    read tmp
+
+    [[ $((start + size)) -gt $end ]] && {
+        print "Error, something went wrong. Cannot allocate space for new partition."
+        exit 1
+    }
+    start=$(./kilo.awk $start b m)
+    end=$(./kilo.awk $end b m)
+    sudo parted -s $dev mkpart primary ${start}MB ${end}MB 2>&1 2>/dev/null
+    [[ $? -ne 0 ]] && { print "some error during creating new partition occured. bailing out"; exit 1; }
+    dev=$(print "$pdevs\n$(ls $dev?)" | sort | uniq -c | grep '^\s*1\s*' | awk '{print $2}')
+    print "succesfully created $dev"
+    print "creating udev rule for automounting"
+    ${kchain_path}/make-udev-rule "$dev" "$name"
+elif [[ ! "$dev" =~ '^/dev/.*' ]]; then
+    [[ -e "$dev" ]] && {
+        print "are you sure you want to overwrite $dev"
+        print "abort or enter"
+        read line
+    } || {
+        print "target image not existing. creating."
+        msize=$(./kilo.awk $size b m)
+        dd if=/dev/zero of="$dev" bs=1M count=$msize
+    }
+fi
+
+# crypto layer on dev
+if [[ -z "$keyfile" ]]; then
+    pass1=$(getpass "Please enter the passphrase for the encrypted device.")
+    pass2=$(getpass "Please enter the passphrase for the encrypted device again.")
+    while [[ "$pass1" != "$pass2" ]]; do
+        pass1=$(getpass "Passwords don't match. Please enter the passphrase for the encrypted device.")
+        pass2=$(getpass "Please enter the passphrase for the encrypted device again.")
+    done
+
+    printf "$pass1" | sudo cryptsetup luksFormat -c aes-xts-plain64 -s 512 -h sha512 "$dev"
+    [[ $? -ne 0 ]] && { print "some error during initializing crypto container occured. bailing out"; exit 1; }
+
+    printf "$pass1" | sudo /sbin/cryptsetup luksOpen "$dev" "$name"
+    [[ $? -ne 0 ]] && { print "some error during opening crypto container occured. bailing out"; exit 1; }
+else
+    [[ -e "$keyfile" ]] || {
+        print "creating keyfile: $keyfile"
+        openssl rand -out "$keyfile" 2048
+    }
+    sudo /sbin/cryptsetup luksFormat -q -c aes-xts-plain64 -s 512 -h sha512 "$dev" "$keyfile"
+    [[ $? -ne 0 ]] && { print "some error during initializing crypto container occured. bailing out"; exit 1; }
+    sudo /sbin/cryptsetup luksOpen "$dev" "$name" --key-file "$keyfile"
+    [[ $? -ne 0 ]] && { print "some error during opening crypto container occured. bailing out"; exit 1; }
+fi
+sudo /sbin/mkfs.ext2 "/dev/mapper/$name"
+[[ $? -ne 0 ]] && {
+    print "some error during formating container occured. bailing out"
+    sudo /sbin/cryptsetup luksClose "$name"
+    exit 1
+}
+[[ -e "$mountpoint" ]] || sudo mkdir -p "$mountpoint"
+[[ -d "$mountpoint" ]] || {
+    print "$mountpoint is not a directory.\nCalling luksClose and Bailing out."
+    sudo /sbin/cryptsetup luksClose "$name"
+    exit 1
+}
+sudo mount "/dev/mapper/$name" "$mountpoint"
+[[ $? -ne 0 ]] && {
+    print "failed to mount $dev on $mountpoint"
+}
+print "succesfully created kchain container on $dev mounted at $mountpoint"

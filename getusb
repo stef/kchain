@@ -1,0 +1,22 @@
+#!/bin/ksh
+# src: http://www.unix.com/shell-programming-scripting/104737-bash-script-detect-list-usb-flash-drives.html
+
+for udi in $(/usr/bin/hal-find-by-capability --capability storage)
+do
+    device=$(hal-get-property --udi $udi --key block.device)
+    vendor=$(hal-get-property --udi $udi --key storage.vendor)
+    model=$(hal-get-property --udi $udi --key storage.model)
+    if [[ $(hal-get-property --udi $udi --key storage.bus) = "usb" ]]
+    then
+        parent_udi=$(hal-find-by-property --key block.storage_device --string $udi 2>/dev/null)
+        [[ $? -gt 0 ]] && continue
+        mount=$(hal-get-property --udi $parent_udi --key volume.mount_point 2>/dev/null)
+        [[ $? -gt 0 ]] && continue
+        label=$(hal-get-property --udi $parent_udi --key volume.label 2>/dev/null)
+        [[ $? -gt 0 ]] && continue
+        media_size=$(hal-get-property --udi $udi --key storage.removable.media_size 2>/dev/null)
+        [[ $? -gt 0 ]] && continue
+        size=$(( ceil(media_size/(1000*1000*1000)) ))
+        printf "$device  $vendor  $model  $mount  $label "${size}GB" \n"
+    fi
+done
