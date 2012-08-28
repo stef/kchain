@@ -23,13 +23,6 @@ CACHEDIR="$HOME/.cache/kchain/mounts"
 source ~/.kchainrc 2>/dev/null
 source .kchainrc 2>/dev/null
 
-# dd if=/dev/zero of=crypt bs=1M count=1024
-# keyfile=/media/keys/.kchain/crypt.key
-# openssl rand -out $keyfile 1024
-# cryptsetup luksFormat -c aes-xts-plain64 -s 512 -h sha512 /dev/loop0 $keyfile
-# cryptsetup luksOpen /dev/loop0 crypt --key-file $keyfile
-# mkfs.ext4 /dev/mapper/crypt
-
 function mountimage {
     name=""; keyfile=""; mountdir=""; image=""
     source "$1"
