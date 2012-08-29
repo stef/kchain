@@ -1,3 +1,5 @@
+#+OPTIONS: num:nil toc:nil \n:nil @:t author:nil email:nil creator:nil
+
 * kchain
 ... is a set of scripts that help to keep all encryption (gnupg, ssh,
 otr, etc) keys on a USB stick, create encrypted containers, and
@@ -8,6 +10,8 @@ When it works: your stick will be automatically mounted, any encrypted
 containers are mounted, the content of the key is made available on
 your system.
 
+(see a less wrongly formatted version of this file here: https://raw.github.com/stef/kchain/master/README.org)
+
 ** Install
    Create your rc file, specifying a name and a mountpoint:
 
@@ -15,6 +19,7 @@ your system.
 cat >~/.kchainrc <<EOT
 LABEL=keys
 MOUNTDIR=/media/\$LABEL
+EOT
 #+end_src
 
 *** Creating an encrypted container
@@ -33,14 +38,10 @@ MOUNTDIR=/media/\$LABEL
        - a file on the disk (e.g. /home/user/secret.img), it it does
          not exist it's created automatically.
        - a partition (e.g. /dev/sdc1)
-
     2. "size" of the container in megabytes, defaults to 40.
-
     3. "name" for the device mapper, defaults to kchain.
-
     4. "mountpoint", the location where this kchain will be
        automounted, defaults to "/media/$name"
-
     5. "keyfile", location of a file containing the key for unlocking
        the container, if specified but file does not exist it is
        automatically created, and no passphrase is queried. Default is
@@ -96,7 +97,7 @@ succesfully created kchain container on /dev/sdc2 mounted at /media/kchain
     container available for usage.
 
     create-container can be used to easily create encrypted partitions
-    or images for other use as well. 
+    or file-based containers for other use as well.
 *** Intializing an kchain container
     kchain provides additional conveniences. A mounted container can
     be quickly populated with the users gnupg, ssh and irssi/otr keys
