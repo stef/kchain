@@ -10,11 +10,13 @@ your system.
 
 ** Install
    Create your rc file, specifying a name and a mountpoint:
+
 #+begin_src sh
 cat >~/.kchainrc <<EOT
 LABEL=keys
 MOUNTDIR=/media/\$LABEL
 #+end_src
+
 *** Creating an encrypted container
     Warning this procedure is experimental, you should backup your
     files before continuing. Whenever in doubt, the script can be
@@ -41,6 +43,7 @@ MOUNTDIR=/media/\$LABEL
        empty to query the user for a passphrase.
 
     See the following example, for a general feel what to expect:
+
 #+begin_src sh
 ./create-container '' 100MB
 WARNING. this mostly works, sometimes not!
@@ -84,6 +87,7 @@ Writing superblocks and filesystem accounting information: done
 
 succesfully created kchain container on /dev/sdc2 mounted at /media/kchain
 #+end_src
+
     When everything completes correctly, we have the newly mounted
     container available for usage.
 
@@ -159,15 +163,17 @@ succesfully created /media/kchain/.kchain/mounts/data
     the key. After successful mounting of the key under $keyroot, the
     files in $keyroot/.kchain/rules.d are being executed. Two rules
     exist: activate-dirmap and mount-images.
+
+    For the auto-mounting fun to work, you must have this running.
 *** lock-key
     Cleanly deactivates all rules and the key. Should also be invoked
     by kchain when it detects the remove event of the USB stick.
-    Bind this to a key in your wm, or to the ACPI event lidclose.
+    Bind this to a key in your WM, or to the ACPI event lidclose.
 *** activate-dirmap
     One of the rules used by kchain. Activates a dirmap, see
     create-dirmap below. Can be reversed using a 'de' parameter.
 *** create-dirmap
-    Moves the local directory to a new location, creates a softlink
+    Moves the local directory to a new location, creates a soft-link
     back to the original name. And sets up a config that automatically
     replaces the link to the local directory to a link pointing to an
     alternative location, e.g.:
@@ -187,21 +193,31 @@ create-dirmap ~/.irssi/otr ~/.keyroot/irssi-otr
     mounting by kchain. Invoke with:
 
 #+begin_src sh
-# create-image $PWD/test.img 10 $PWD/test.key test /mnt
+# create-image $PWD/test.img 10 $PWD/test.key test /mnt /media/kchain
 #+end_src
 
     Which creates an image $PWD/test.img which is 10MByte big, also
     creates a random key at $PWD/test.key, calls the whole image
-    'test' and sets it up for automatic mounting under '/mnt'
+    'test' and sets it up for automatic mounting under '/mnt' and
+    stores this configuration on the kchain container in
+    /media/kchain.
 *** mount-images
     The other of the rules used by kchain. Automatically mounts
     encrypted containers. See create-image and drop-image below.
 *** umount-images
-    Called by lock-key. Umounts all images or only parameters.
-    Images are specified by their configfile created by create-image.
+    Called by lock-key. Umounts all images or only those specified by
+    parameters. Images are specified by their configfile created by
+    create-image.
 *** drop-image
     unmounts and securely deletes the storage, expects the image
     configuration file, stored in $keyroot/.kchain/mounts/
 *** make-udev-rule
-    Prints out a suitable udev rule, for always linking the usb
-    storage always to /dev/ukey, needed by kchain.
+    Creates a suitable udev rule in
+    /etc/udev/rules.d/81-kchain.rules. This is necessary for the
+    kchain dispatcher to do it's auto-mounting magic. It takes two
+    parameters:
+    1. device (e.g. /dev/sdc2)
+    2. the name for the mapper, default is 'kchain'
+
+    make-udev-rule is automatically called by create-container
+
