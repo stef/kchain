@@ -10,7 +10,7 @@ When it works: your stick will be automatically mounted, any encrypted
 containers are mounted, the content of the key is made available on
 your system.
 
-(see a less wrongly formatted version of this file here: https://raw.github.com/stef/kchain/master/README.org)
+(see a less horribly formatted version of this file here: https://raw.github.com/stef/kchain/master/README.org)
 
 ** Install
    Create your rc file, specifying a name and a mountpoint:
