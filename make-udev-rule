@@ -7,7 +7,7 @@ echo "${0##*/} /dev/sdxX # partition for kchain on your stick"
 exit 1
 }
 device="$1"
-name="${2:-ukey}"
+name="${2:-kchain}"
 
 /sbin/udevadm info -a -p $(/sbin/udevadm info -q path -n "${device:0:8}") |
    while read line; do
