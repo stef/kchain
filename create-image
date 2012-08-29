@@ -20,7 +20,7 @@ source ~/.kchainrc 2>/dev/null
 source .kchainrc 2>/dev/null
 
 [[ $# -lt 5 ]] && {
-    print "${0##*/} <filename> <size> <keyfile> <name> <mountpoint>"
+    print "${0##*/} <filename> <size> <keyfile> <name> <mountpoint> [<kchainroot>]"
     exit 1
 }
 
@@ -29,18 +29,21 @@ size="$2"
 keyfile="$3"
 name="$4"
 mountpoint="$5"
+kchainroot="$6/.kchain"
 
 dd if=/dev/zero of="$filename" bs=1M count=$size
 openssl rand -out "$keyfile" 2048
-sudo /sbin/cryptsetup luksFormat -c aes-xts-plain64 -s 512 -h sha512 "$filename" "$keyfile"
+sudo /sbin/cryptsetup luksFormat -q -c aes-xts-plain64 -s 512 -h sha512 "$filename" "$keyfile"
 sudo /sbin/cryptsetup luksOpen "$filename" "$name" --key-file "$keyfile"
 sudo /sbin/mkfs.ext4 "/dev/mapper/$name"
 sudo /sbin/cryptsetup luksClose "$name"
-cat >"/media/keys/.kchain/mounts/$name" <<EOF
+[[ -n "$kchainroot" ]] && {
+    cat >"$kchainroot/mounts/$name" <<EOF
 name=$name
 keyfile=$keyfile
 image=$filename
 mountdir=$mountpoint
 EOF
-${0%/*}/mount-images "/media/keys/.kchain/mounts/$name"
-echo "succesfully created /media/keys/.kchain/mounts/$name"
+    ${0%/*}/mount-images "$kchainroot/mounts/$name"
+}
+echo "succesfully created $kchainroot/mounts/$name"
