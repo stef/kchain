@@ -1,13 +1,161 @@
 * kchain
-... is a set of scripts that help to keep all encryption keys on
-a USB stick, create encrypted containers, and linking directories from
-the key to other locations (e.g. remapping ~/.gnupg).
+... is a set of scripts that help to keep all encryption (gnupg, ssh,
+otr, etc) keys on a USB stick, create encrypted containers, and
+linking directories from the key to other locations (e.g. remapping
+~/.gnupg).
 
 When it works: your stick will be automatically mounted, any encrypted
 containers are mounted, the content of the key is made available on
 your system.
 
-** Components
+** Depends
+    - libnotify-bin (optional)
+** Install
+   Create your rc file, specifying a name and a mountpoint:
+#+begin_src sh
+cat >~/.kchainrc <<EOT
+LABEL=keys
+MOUNTDIR=/media/\$LABEL
+#+end_src
+*** Creating an encrypted container
+    Warning this procedure is experimental, you should backup your
+    files before continuing. Whenever in doubt, the script can be
+    interrupted using control-c.
+
+    You can easily create new containers on USB sticks or file-based
+    images using create-container. Create container accepts the
+    following positional parameters:
+    1. "dev" - can be either
+       - empty, in which case it tries to autodetect any USB storages
+         on your system.
+       - a USB storage device (e.g. /dev/sdc), then it will try to
+         create a new partition on this device.
+       - a file on the disk (e.g. /home/user/secret.img), it it does
+         not exist it's created automatically.
+       - a partition (e.g. /dev/sdc1)
+    2. "size" of the container in megabytes, defaults to 40.
+    3. "name" for the device mapper, defaults to kchain.
+    4. "mountpoint", the location where this kchain will be
+       automounted, defaults to "/media/$name"
+    5. "keyfile", location of a file containing the key for unlocking
+       the container, if specified but file does not exist it is
+       automatically created, and no passphrase is queried. Default is
+       empty to query the user for a passphrase.
+
+    See the following example, for a general feel what to expect:
+#+begin_src sh
+./create-container '' 100MB
+WARNING. this mostly works, sometimes not!
+We're not taking responsibility to what happens to your data
+Create backups of your date before continuing
+control-c to abort now, or press enter to continue
+
+1 /dev/sdc  Kingston  DataTraveler II+     1GB
+2 /dev/sde  Motorola  MSnc.     0GB
+please choose one of the above devices [1-2]: 1
+No device specified. Guesing...
+Will try to create a new container on /dev/sdc  Kingston  DataTraveler II+     1GB
+Not enough free space. Trying to resize.
+ 1      512B   1040MB  1040MB  primary  ext2
+about to resize. ctrlc-c to abort, enter to continue
+
+you have selected a device, that has enough space left.
+creating the new partition now. ctrlc-c to abort, enter to continue
+
+succesfully created /dev/sdc2
+creating udev rule for automounting
+mke2fs 1.42.5 (29-Jul-2012)
+Filesystem label=
+OS type: Linux
+Block size=1024 (log=0)
+Fragment size=1024 (log=0)
+Stride=0 blocks, Stripe width=0 blocks
+23616 inodes, 94208 blocks
+4710 blocks (5.00%) reserved for the super user
+First data block=1
+Maximum filesystem blocks=67371008
+12 block groups
+8192 blocks per group, 8192 fragments per group
+1968 inodes per group
+Superblock backups stored on blocks:
+        8193, 24577, 40961, 57345, 73729
+
+Allocating group tables: done
+Writing inode tables: done
+Writing superblocks and filesystem accounting information: done
+
+succesfully created kchain container on /dev/sdc2 mounted at /media/kchain
+#+end_src
+    When everything completes correctly, we have the newly mounted
+    container available for usage.
+
+    create-container can be used to easily create encrypted partitions
+    or images for other use as well. 
+*** Intializing an kchain container
+    kchain provides additional conveniences. A mounted container can
+    be quickly populated with the users gnupg, ssh and irssi/otr keys
+    using init-kchain (for more info see the section on
+    create-dirmap). init-kchain takes the path to the mounted
+    container as a parameter:
+
+#+begin_src sh
+# ./init-kchain /media/kchain
+setting up directories
+initializing ssh, gnupg and irssi/otr dirmaps
+call `activate-dirmap /media/kchain/.kchain/ /home/user/.ssh' to activate /home/user/.ssh dirmap
+call `activate-dirmap /media/kchain/.kchain/ /home/user/.gnupg' to activate /home/user/.gnupg dirmap
+call `activate-dirmap /media/kchain/.kchain/ /home/user/.irssi/otr' to activate /home/user/.irssi/otr dirmap
+
+if you want to create some images with the key stored on your new kchain
+run `create-image /home/user/.data.img 10 /media/kchain/.kchain/data.key data /home/user/.mnt/data /media/kchain'
+this creates a 10MB big .data.img in your home, with the key on they kchain
+Have fun using kchain
+#+end_src
+
+    One convenient feature of kchain is the automatic mounting of
+    encrypted images it knows about. Normally the keys for these
+    images are stored on the kchain container.
+
+    kchain comes with create-image, which takes the following
+    positional and mandatory parameters:
+    1. path to image (it will be overwritten)
+    2. size of image in megabytes
+    3. path to the key (automatically created and overwritten if
+       existing)
+    4. mountpoint where this image will be automounted
+    5. path to the kchain container
+
+    see the following example:
+
+#+begin_src sh
+# ./create-image /home/user/.data.img 10 /media/kchain/.kchain/data.key data /home/user/.mnt/data /media/kchain
+10+0 records in
+10+0 records out
+10485760 bytes (10 MB) copied, 0.0301455 s, 348 MB/s
+mke2fs 1.42.5 (29-Jul-2012)
+Filesystem label=
+OS type: Linux
+Block size=1024 (log=0)
+Fragment size=1024 (log=0)
+Stride=0 blocks, Stripe width=0 blocks
+2048 inodes, 8192 blocks
+409 blocks (4.99%) reserved for the super user
+First data block=1
+Maximum filesystem blocks=8388608
+1 block group
+8192 blocks per group, 8192 fragments per group
+2048 inodes per group
+
+Allocating group tables: done
+Writing inode tables: done
+Creating journal (1024 blocks): done
+Writing superblocks and filesystem accounting information: done
+
+mounting image /media/kchain/.kchain/mounts/data
+succesfully created /media/kchain/.kchain/mounts/data
+#+end_src
+
+** Other Components
 *** kchain
     This is the main dispatcher, it reacts to the addition/removal of
     the key. After successful mounting of the key under $keyroot, the
@@ -36,9 +184,6 @@ create-dirmap ~/.irssi/otr ~/.keyroot/irssi-otr
 
     You should put something in the alternative directory, otherwise
     when this gets activated, the directory will be empty.
-*** mount-images
-    The other of the rules used by kchain. Automatically mounts
-    encrypted containers. See create-image and drop-image below.
 *** create-image
     creates a new encrypted container and sets it up for automatic
     mounting by kchain. Invoke with:
@@ -50,6 +195,9 @@ create-dirmap ~/.irssi/otr ~/.keyroot/irssi-otr
     Which creates an image $PWD/test.img which is 10MByte big, also
     creates a random key at $PWD/test.key, calls the whole image
     'test' and sets it up for automatic mounting under '/mnt'
+*** mount-images
+    The other of the rules used by kchain. Automatically mounts
+    encrypted containers. See create-image and drop-image below.
 *** umount-images
     Called by lock-key. Umounts all images or only parameters.
     Images are specified by their configfile created by create-image.
@@ -59,29 +207,3 @@ create-dirmap ~/.irssi/otr ~/.keyroot/irssi-otr
 *** make-udev-rule
     Prints out a suitable udev rule, for always linking the usb
     storage always to /dev/ukey, needed by kchain.
-
-** Depends
-    - libnotify-bin (optional)
-** Install
-   With your USB stick plugged run while specifying the partition on
-   which your keys are stored:
-#+begin_src sh
-make-udev-rule.sh /dev/sd?
-#+end_src
-
-   add /dev/mapper/ukey to /etc/pmount.allow
-#+begin_src sh
-# echo /dev/mapper/ukey >>/etc/pmount.allow
-#+end_src
-
-#+begin_src sh
-mkdir -p ~/.cache/kchain/mounts/
-#+end_src
-
-#+begin_src sh
-cat >~/.kchainrc <<EOT
-LABEL=keys
-MOUNTDIR=/media/\$LABEL
-#+end_src
-
-todo: finish
