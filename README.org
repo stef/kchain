@@ -8,8 +8,6 @@ When it works: your stick will be automatically mounted, any encrypted
 containers are mounted, the content of the key is made available on
 your system.
 
-** Depends
-    - libnotify-bin (optional)
 ** Install
    Create your rc file, specifying a name and a mountpoint:
 #+begin_src sh
