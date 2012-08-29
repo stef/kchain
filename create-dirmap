@@ -22,18 +22,15 @@ source .kchainrc 2>/dev/null
 target="${1}"
 new="${2}"
 local="${3:-$target.local}"
+mountdir="${4:-$MOUNTDIR}"
 
-[[ -L "$target" ]] && {
-    echo "$target is already a symbolic link. Bailing out" >&2
-    return
+[[ -L "$target" ]] || {
+    [[ -d "$local" ]] || {
+        mv "$target" "$local"
+    }
+    ln -s "$local" "$target"
 }
-[[ -d "$local" ]] && {
-    echo "$local already exists. Bailing out" >&2
-}
-[[ -d "$new" ]] || mkdir -p "$new"
+cp -rL "$target" "$new"
+echo "$new $target" >>"$mountdir/.kchain/conf.d/dirmap"
 
-mv "$target" "$local"
-ln -s "$local" "$target"
-echo "$new $target" >>"$MOUNTDIR/.kchain/conf.d/dirmap"
-
-echo "done. activate-dirmap $new $target"
+echo "call \`activate-dirmap $new $target' to activate $target dirmap"
