@@ -21,13 +21,21 @@ source .kchainrc 2>/dev/null
 
 kchain_path="$(realpath ${0%/*})"
 
+print "setting up directories"
 mountdir="${1}"
 sudo mkdir -p "$mountdir/.kchain"
 sudo chown -R $(id -u) "$mountdir/.kchain"
 mkdir -p "$mountdir/.kchain/conf.d"
 mkdir -p "$mountdir/.kchain/mounts"
 
+print "initializing ssh, gnupg and irssi/otr dirmaps"
 
 "$kchain_path/create-dirmap" ~/.ssh "$mountdir/.kchain/" '' "$mountdir"
 "$kchain_path/create-dirmap" ~/.gnupg "$mountdir/.kchain/" '' "$mountdir"
 "$kchain_path/create-dirmap" ~/.irssi/otr "$mountdir/.kchain/" '' "$mountdir"
+
+print
+print "if you want to create some images with the key stored on your new kchain"
+print "run \`create-image $HOME/.data.img 10 $mountdir/.kchain/data.key data $HOME/.mnt/data /media/kchain'"
+print "this creates a 10MB big .data.img in your home, with the key on they kchain"
+print "Have fun using kchain"
