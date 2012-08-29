@@ -31,6 +31,14 @@ function tobytes {
     ./kilo.awk $v $m b
 }
 
+print
+print "WARNING. this mostly works, sometimes not!"
+print "We're not taking responsibility to what happens to your data"
+print "If you care deeply about it,"
+print "you are advised to create backups of your date and continue afterwards"
+print "abort now, or press enter to continue"
+read tmp
+
 dev="$1"
 size="$(tobytes ${2:-10Mb})"
 name="${3:-kchain}"
@@ -94,8 +102,7 @@ if [[ "$dev" =~ '/dev/sd.' ]]; then
         print "Not enough free space. Trying to resize."
         cnt=$(print "$parts" | wc -l)
         if [[ "$cnt" -eq 0 ]]; then
-            print "Hmm, there's no free space on this device,"
-            print "but also no partitions, if i understand this correctly.";
+            print "Error, there's no free space neither partitions on this device,"
             print "Try with another USB stick please.";
             exit 1
         elif [[ "$cnt" -gt 1 ]]; then
@@ -111,20 +118,13 @@ if [[ "$dev" =~ '/dev/sd.' ]]; then
             choice=1
         fi
         print "$parts" | sed "${choice}P;d"
-        print
-        print "WARNING. this mostly works, sometimes not!"
-        print "We're not taking responsibility to what happens to your data"
-        print "If you care deeply about it,"
-        print "you are advised to abort here and continue manually"
-        print "abort now, or press enter to continue"
-        read tmp
         # try to resize the partition
         no=$(print "$parts" | sed "${choice}P;d" | awk '{print $1}')
         start=$(print "$parts" | sed "${choice}P;d" | awk '{print $2}')
         end=$(print "$parts" | sed "${choice}P;d" | awk '{print $3}'); end=$(( $(tobytes "$end") - $size + $free))
         endm=$(./kilo.awk $end b m)
         #print "$no, $start, ${end}MB"
-        sudo parted -s "$dev" resize "$no" "$start" "${endm}MB" 2>/dev/null
+        sudo parted -s "$dev" resize "$no" "$start" "${endm}MB" 2>&1 2>/dev/null
         [[ $? -ne 0 ]] && { print "some error during resize occured. bailing out"; exit 1; }
         start=$end
         end=$((start + size))
