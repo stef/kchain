@@ -28,21 +28,19 @@ source .kchainrc 2>/dev/null
 function tobytes {
     v="${1%%[a-zA-Z]*}"
     m="${1##*[0-9]}"; m="$(print ${m:0:1} | tr 'A-Z' 'a-z')"
-    ./kilo.awk $v $m b
+    "${kchain_path}"/kilo.awk $v $m b
 }
 
-print
 print "WARNING. this mostly works, sometimes not!"
 print "We're not taking responsibility to what happens to your data"
-print "If you care deeply about it,"
-print "you are advised to create backups of your date and continue afterwards"
-print "abort now, or press enter to continue"
+print "Create backups of your date before continuing"
+print "control-c to abort now, or press enter to continue"
 read tmp
 
 dev="$1"
-size="$(tobytes ${2:-10Mb})"
+size="$(tobytes ${2:-40Mb})"
 name="${3:-kchain}"
-mountpoint="${4:-/media/kchain}"
+mountpoint="${4:-/media/$name}"
 keyfile="$5"
 
 function getpass {
@@ -84,7 +82,7 @@ function getpass {
 # dev is a valid disk
 if [[ "$dev" =~ '/dev/sd.' ]]; then
     # get partitions and unallocated free space
-    pdevs=$(ls $dev?)
+    pdevs=$(ls $dev? 2>/dev/null)
     parts=$(sudo parted -s "$dev" print free | sed '1,/Number\s*Start\s*End\s*Size\s*Type\s*File system\s*Flags$/d')
     [[ $? -ne 0 ]] && { print "some error occured. bailing out"; exit 1; }
     free=0
@@ -122,27 +120,29 @@ if [[ "$dev" =~ '/dev/sd.' ]]; then
         no=$(print "$parts" | sed "${choice}P;d" | awk '{print $1}')
         start=$(print "$parts" | sed "${choice}P;d" | awk '{print $2}')
         end=$(print "$parts" | sed "${choice}P;d" | awk '{print $3}'); end=$(( $(tobytes "$end") - $size + $free))
-        endm=$(./kilo.awk $end b m)
+        endm=$("${kchain_path}"/kilo.awk $end b m)
         #print "$no, $start, ${end}MB"
-        sudo parted -s "$dev" resize "$no" "$start" "${endm}MB" 2>&1 2>/dev/null
+        print "about to resize. ctrlc-c to abort, enter to continue"
+        read tmp
+        sudo parted -s "$dev" resize "$no" "$start" "${endm}MB" >/dev/null 2>&1
         [[ $? -ne 0 ]] && { print "some error during resize occured. bailing out"; exit 1; }
         start=$end
         end=$((start + size))
     }
     # create partition
     print "you have selected a device, that has enough space left."
-    print "creating the new partition now. ctrcl-c to abort, enter to continue"
+    print "creating the new partition now. ctrlc-c to abort, enter to continue"
     read tmp
 
     [[ $((start + size)) -gt $end ]] && {
         print "Error, something went wrong. Cannot allocate space for new partition."
         exit 1
     }
-    start=$(./kilo.awk $start b m)
-    end=$(./kilo.awk $end b m)
-    sudo parted -s $dev mkpart primary ${start}MB ${end}MB 2>&1 2>/dev/null
+    start=$("${kchain_path}"/kilo.awk $start b m)
+    end=$("${kchain_path}"/kilo.awk $end b m)
+    sudo parted -s $dev mkpart primary ${start}MB ${end}MB >/dev/null 2>&1
     [[ $? -ne 0 ]] && { print "some error during creating new partition occured. bailing out"; exit 1; }
-    dev=$(print "$pdevs\n$(ls $dev?)" | sort | uniq -c | grep '^\s*1\s*' | awk '{print $2}')
+    dev=$(print "$pdevs\n$(ls $dev?)" | sort | uniq -c | grep '^\s*1\s*' | awk '{print $2}' | tr -d '\n')
     print "succesfully created $dev"
     print "creating udev rule for automounting"
     ${kchain_path}/make-udev-rule "$dev" "$name"
@@ -153,7 +153,7 @@ elif [[ ! "$dev" =~ '^/dev/.*' ]]; then
         read line
     } || {
         print "target image not existing. creating."
-        msize=$(./kilo.awk $size b m)
+        msize=$("${kchain_path}"/kilo.awk $size b m)
         dd if=/dev/zero of="$dev" bs=1M count=$msize
     }
 fi
@@ -175,7 +175,7 @@ if [[ -z "$keyfile" ]]; then
 else
     [[ -e "$keyfile" ]] || {
         print "creating keyfile: $keyfile"
-        openssl rand -out "$keyfile" 2048
+        openssl rand -out "$keyfile" 1024
     }
     sudo /sbin/cryptsetup luksFormat -q -c aes-xts-plain64 -s 512 -h sha512 "$dev" "$keyfile"
     [[ $? -ne 0 ]] && { print "some error during initializing crypto container occured. bailing out"; exit 1; }
