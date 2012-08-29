@@ -33,10 +33,14 @@ MOUNTDIR=/media/\$LABEL
        - a file on the disk (e.g. /home/user/secret.img), it it does
          not exist it's created automatically.
        - a partition (e.g. /dev/sdc1)
+
     2. "size" of the container in megabytes, defaults to 40.
+
     3. "name" for the device mapper, defaults to kchain.
+
     4. "mountpoint", the location where this kchain will be
        automounted, defaults to "/media/$name"
+
     5. "keyfile", location of a file containing the key for unlocking
        the container, if specified but file does not exist it is
        automatically created, and no passphrase is queried. Default is
@@ -44,7 +48,7 @@ MOUNTDIR=/media/\$LABEL
 
     See the following example, for a general feel what to expect:
 
-#+begin_src sh
+#+begin_src
 ./create-container '' 100MB
 WARNING. this mostly works, sometimes not!
 We're not taking responsibility to what happens to your data
@@ -100,7 +104,7 @@ succesfully created kchain container on /dev/sdc2 mounted at /media/kchain
     create-dirmap). init-kchain takes the path to the mounted
     container as a parameter:
 
-#+begin_src sh
+#+begin_src
 # ./init-kchain /media/kchain
 setting up directories
 initializing ssh, gnupg and irssi/otr dirmaps
@@ -129,7 +133,7 @@ Have fun using kchain
 
     see the following example:
 
-#+begin_src sh
+#+begin_src
 # ./create-image /home/user/.data.img 10 /media/kchain/.kchain/data.key data /home/user/.mnt/data /media/kchain
 10+0 records in
 10+0 records out
@@ -178,7 +182,7 @@ succesfully created /media/kchain/.kchain/mounts/data
     replaces the link to the local directory to a link pointing to an
     alternative location, e.g.:
 
-#+begin_src sh
+#+begin_src
 create-dirmap ~/.irssi/otr ~/.keyroot/irssi-otr
 #+end_src
 
@@ -192,7 +196,7 @@ create-dirmap ~/.irssi/otr ~/.keyroot/irssi-otr
     creates a new encrypted container and sets it up for automatic
     mounting by kchain. Invoke with:
 
-#+begin_src sh
+#+begin_src
 # create-image $PWD/test.img 10 $PWD/test.key test /mnt /media/kchain
 #+end_src
 
