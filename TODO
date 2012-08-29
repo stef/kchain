@@ -1,0 +1,2 @@
+ - use mount to map directories
+ - use raw cryptsetup for containers
