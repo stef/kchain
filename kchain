@@ -19,57 +19,53 @@
 # depends on pmount, dbus-monitor
 
 
-LABEL=keys
-MOUNTDIR=/media/$LABEL
+MOUNTDIR=/media
 kchain_path="$(realpath ${0%/*})"
 
 source ~/.kchainrc 2>/dev/null
 source .kchainrc 2>/dev/null
 
 function add {
-    read object
-    object="${object##*/}"
-    object="${object%\"}"
-    [[ -e '/dev/ukey' ]] || return
-    # only check devices, not partitions
-    [[ "/dev/$object" -ef "/dev/ukey" ]] || return
-    # our stick?
+    set -x
+    name="$1"; uuid="$2"
     # is it already mounted?
-    mountpoint -q "$MOUNTDIR" && return
+    mountpoint -q "$MOUNTDIR/$name" && return
+    [[ -e "$MOUNTDIR/$name" ]] || sudo mkdir -p "$MOUNTDIR/$name"
     # try to cryptsetup, retry once
-    SUDO_ASKPASS=/usr/bin/ssh-askpass sudo -A sh -c "ssh-askpass 'Enter key for unlocking USB' | cryptsetup luksOpen /dev/ukey ukey" ||
-       SUDO_ASKPASS=/usr/bin/ssh-askpass sudo -A sh -c "ssh-askpass 'Enter key for unlocking USB' | cryptsetup luksOpen /dev/ukey ukey" ||
+    SUDO_ASKPASS=/usr/bin/ssh-askpass sudo -A sh -c \
+        "ssh-askpass 'Enter key for unlocking USB' | pmount -t ext2 -r /dev/disk/by-uuid/$uuid $MOUNTDIR/$name" ||
+       SUDO_ASKPASS=/usr/bin/ssh-askpass sudo -A sh -c \
+           "ssh-askpass 'Enter key for unlocking USB' | pmount -t ext2 -r /dev/disk/by-uuid/$uuid $MOUNTDIR/$name" ||
        return
     # needed for cleanup
-    realpath /dev/ukey >"$CACHEDIR/dev"
-    pmount -t ext2 -r /dev/mapper/ukey $LABEL || {
-        # something failed, close down luks device
-        sudo /sbin/cryptsetup luksClose ukey
-        return
-    }
-    if [ -d "$MOUNTDIR/.kchain/rules.d" ]; then
-        for i in `run-parts --list "$MOUNTDIR/.kchain/rules.d" `; do
+    echo "$uuid $name" >>"$CACHEDIR/dev"
+    if [ -d "$MOUNTDIR/$name/.kchain/rules.d" ]; then
+        for i in `run-parts --list "$MOUNTDIR/$name/.kchain/rules.d" `; do
             PATH="$PATH:$kchain_path" $i
         done
     fi
-    echo "activated $MOUNTDIR" >&2
+    echo "activated $MOUNTDIR/$name" >&2
 }
 
 function remove {
-    read object
-    object="${object##*/}"
-    object="${object%\"}"
+    set -x
+    name="$1"; uuid="$2"
     # ignore foreign devices
-    [[ "/dev/$object" == "$(cat $CACHEDIR/dev)" ]] || return
+    grep -qs "$uuid $name" $CACHEDIR/dev || return
     # run clean up
-    $kchain_path/lock-key
-    echo "deactivated $MOUNTDIR" >&2
+    $kchain_path/lock-key "$name"
+    tmpf=$(mktemp)
+    grep -qv "$uuid $name" $CACHEDIR/dev >"$tmpf"
+    mv "$tmpf" "$CACHEDIR/dev"
+    echo "deactivated $MOUNTDIR/$name" >&2
 }
 
-dbus-monitor --system "type='signal',interface='org.freedesktop.UDisks'" |
-  while read signal; do
-       case "${signal}" in
-         *member=DeviceAdded) add;;
-         *member=DeviceRemoved) remove ;;
-     esac
+inotifywait -qm -e create -e delete /dev/disk/by-uuid |
+  while read dir signal uuid; do
+      name=$(grep -s "$uuid" /etc/kchain.keys $HOME/.kchain.keys kchain.keys | awk '{print $2}')
+      [[ -z "$name" ]] && continue
+      case "${signal}" in
+         CREATE) add "$name" "$uuid";;
+         DELETE) remove "$name" "$uuid";;
+      esac
   done
