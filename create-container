@@ -144,8 +144,8 @@ if [[ "$dev" =~ '/dev/sd.' ]]; then
     [[ $? -ne 0 ]] && { print "some error during creating new partition occured. bailing out"; exit 1; }
     dev=$(print "$pdevs\n$(ls $dev?)" | sort | uniq -c | grep '^\s*1\s*' | awk '{print $2}' | tr -d '\n')
 
-    uuid=$(/sbin/blkid "$dev")
-    echo "#$uuid $name" >>$HOME/.kchain.keys
+    sleep 0.3
+    echo "#$(/sbin/blkid "$dev" | sed 's/.*UUID=\"\([-0-9a-f]*\).*/\1/') $name" >>$HOME/.kchain.keys
 
     print "succesfully created $dev"
 elif [[ ! "$dev" =~ '^/dev/.*' ]]; then
