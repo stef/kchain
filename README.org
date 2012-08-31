@@ -17,8 +17,7 @@ your system.
 
 #+begin_src sh
 cat >~/.kchainrc <<EOT
-LABEL=keys
-MOUNTDIR=/media/\$LABEL
+CACHEDIR=~/.cache/kchain
 EOT
 #+end_src
 
