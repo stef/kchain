@@ -31,12 +31,27 @@ name="$4"
 mountpoint="$5"
 kchainroot="$6/.kchain"
 
-dd if=/dev/zero of="$filename" bs=1M count=$size
-openssl rand -out "$keyfile" 2048
-sudo /sbin/cryptsetup luksFormat -q -c aes-xts-plain64 -s 512 -h sha512 "$filename" "$keyfile"
-sudo /sbin/cryptsetup luksOpen "$filename" "$name" --key-file "$keyfile"
-sudo /sbin/mkfs.ext4 "/dev/mapper/$name"
-sudo /sbin/cryptsetup luksClose "$name"
+dd if=/dev/zero bs=1M count=$size | openssl enc -aes-128-ofb -k $RANDOM -out "$filename" || {
+    print "something went wrong bailing out"
+    exit 1
+}
+openssl rand -out "$keyfile" 8192 || {
+    rm "$filename"
+    print "something went wrong bailing out"
+    exit 1
+}
+sudo /sbin/cryptsetup create -q -c aes-xts-plain64 -l 8192 -h sha512 --key-file "$keyfile" "$name" "$filename" || {
+    rm "$filename" "$keyfile"
+    print "something went wrong bailing out"
+    exit 1
+}
+sudo /sbin/mkfs.ext4 "/dev/mapper/$name" || {
+    rm "$filename" "$keyfile"
+    sudo cryptsetup remove "$name"
+    print "something went wrong bailing out"
+    exit 1
+}
+sudo cryptsetup remove "$name"
 [[ -n "$kchainroot" ]] && {
     cat >"$kchainroot/mounts/$name" <<EOF
 name=$name

@@ -27,8 +27,6 @@ function umountimage {
     source "$1"
     mountpoint -q "$mountdir" && SUDO_ASKPASS=/usr/bin/ssh-askpass sudo -A /bin/umount "$mountdir"
     [[ -e "/dev/mapper/$name" ]] && sudo /sbin/cryptsetup luksClose $name
-    lb="$(sudo /sbin/losetup -j "$image" | cut -d: -f1)"
-    [[ -n "$lb" ]] && sudo /sbin/losetup -d "$lb"
 }
 
 break=/bin/false

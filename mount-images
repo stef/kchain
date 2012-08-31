@@ -27,13 +27,11 @@ function mountimage {
     name=""; keyfile=""; mountdir=""; image=""
     source "$1"
     mountpoint -q "$mountdir" && return
-    lb=$(sudo /sbin/losetup -j "$image" | cut -d: -f1)
-    [[ -z "$lb" ]] && {
-        lb=$(sudo /sbin/losetup -f)
-        sudo /sbin/losetup "$lb" "$image"
-    }
     [[ -e "/dev/mapper/$name" ]] ||
-        sudo /sbin/cryptsetup luksOpen "$lb" "$name" --key-file "$keyfile"
+        sudo /sbin/cryptsetup create -q -c aes-xts-plain64 -l 8192 -h sha512 --key-file "$keyfile" "$name" "$image" || {
+            print "something went wrong bailing out"
+            exit 1
+        }
     [[ -e "$mountdir" ]] || mkdir -p "$mountdir"
     sudo /bin/mount "/dev/mapper/$name" "$mountdir"
     cat >"$CACHEDIR/mounts/$name" <<EOF
