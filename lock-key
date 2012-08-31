@@ -18,8 +18,7 @@
 
 # depends on pmount, dbus-monitor
 
-LABEL=keys
-MOUNTDIR=/media/$LABEL
+MOUNTDIR=/media
 
 source ~/.kchainrc 2>/dev/null
 source .kchainrc 2>/dev/null
@@ -28,5 +27,16 @@ ${0%/*}/activate-dirmap de
 
 ${0%/*}/umount-images
 
-mountpoint -q "$MOUNTDIR" && pumount $LABEL
-[[ -e /dev/mapper/ukey ]] && /sbin/cryptsetup luksClose ukey
+[[ -n "$1" ]] && {
+    mountpoint -q "$MOUNTDIR/$1" && pumount $1
+    [[ -n "$1" && -e /dev/mapper/$1 ]] && /sbin/cryptsetup luksClose "$1"
+    exit 0
+}
+
+cat "$CACHEDIR/dev" | while read uuid name; do
+    mountpoint -q "$MOUNTDIR/$name" && pumount $name
+    [[ -e "/dev/mapper/$name" ]] && /sbin/cryptsetup luksClose "$name"
+    tmpf=$(mktemp)
+    grep -qv "$uuid $name" $CACHEDIR/dev >"$tmpf"
+    mv "$tmpf" "$CACHEDIR/dev"
+done
