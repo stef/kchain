@@ -13,6 +13,8 @@ your system.
 (see a less horribly formatted version of this file here: https://raw.github.com/stef/kchain/master/README.org)
 
 ** Install
+   Depends on cryptsetup, inotify-tools.
+
    Create your rc file, specifying a name and a mountpoint:
 
 #+begin_src sh
