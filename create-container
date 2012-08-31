@@ -143,9 +143,11 @@ if [[ "$dev" =~ '/dev/sd.' ]]; then
     sudo parted -s $dev mkpart primary ${start}MB ${end}MB >/dev/null 2>&1
     [[ $? -ne 0 ]] && { print "some error during creating new partition occured. bailing out"; exit 1; }
     dev=$(print "$pdevs\n$(ls $dev?)" | sort | uniq -c | grep '^\s*1\s*' | awk '{print $2}' | tr -d '\n')
+
+    uuid=$(/sbin/blkid "$dev")
+    echo "#$uuid $name" >>$HOME/.kchain.keys
+
     print "succesfully created $dev"
-    print "creating udev rule for automounting"
-    ${kchain_path}/make-udev-rule "$dev" "$name"
 elif [[ ! "$dev" =~ '^/dev/.*' ]]; then
     [[ -e "$dev" ]] && {
         print "are you sure you want to overwrite $dev"
@@ -197,5 +199,7 @@ sudo /sbin/mkfs.ext2 "/dev/mapper/$name"
 sudo mount "/dev/mapper/$name" "$mountpoint"
 [[ $? -ne 0 ]] && {
     print "failed to mount $dev on $mountpoint"
+    exit 1
 }
+
 print "succesfully created kchain container on $dev mounted at $mountpoint"
